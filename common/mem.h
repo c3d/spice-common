@@ -140,6 +140,9 @@ size_t spice_strnlen(const char *str, size_t max_len);
 
 #endif
 
+/* Cast to a type with stricter alignment constraints */
+#define SPICE_REALIGN_CAST(type, value) ((type)(void *)(value))
+
 #define spice_new(struct_type, n_structs) _SPICE_NEW(struct_type, n_structs, malloc)
 #define spice_new0(struct_type, n_structs) _SPICE_NEW(struct_type, n_structs, malloc0)
 #define spice_renew(struct_type, mem, n_structs) _SPICE_RENEW(struct_type, mem, n_structs, realloc)
