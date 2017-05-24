@@ -295,6 +295,7 @@ size_t spice_buffer_remove(SpiceBuffer *buffer, size_t len)
     return len;
 }
 
+#ifdef SPICE_DEBUG_ALIGNMENT
 void spice_alignment_warning(const char *loc, void *p, unsigned sz)
 {
     static const char *last_loc = NULL;
@@ -305,8 +306,6 @@ void spice_alignment_warning(const char *loc, void *p, unsigned sz)
     }
 }
 
-
-#ifdef SPICE_DEBUG_ALIGNMENT
 void spice_alignment_debug(const char *loc, void *p, unsigned sz)
 {
     static const char *last_loc = NULL;
