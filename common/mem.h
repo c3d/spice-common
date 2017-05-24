@@ -141,37 +141,38 @@ size_t spice_strnlen(const char *str, size_t max_len);
 #endif
 
 /* Cast to a type with stricter alignment constraints (to build with clang) */
+
+/* Misaligned cast to a type with stricter alignment */
+#ifndef SPICE_DEBUG_ALIGNMENT
+#define SPICE_UNALIGNED_CAST(type, value) ((type)(void *)(value))
+#define SPICE_ALIGNED_CAST(type, value)   ((type)(void *)(value))
+
+#else // SPICE_DEBUG_ALIGNMENT
 #define SPICE_ALIGNED_CAST(type, value)                                 \
     ((type)spice_alignment_check(SPICE_STRLOC,                          \
                                  (void *)(value),                       \
                                  __alignof(*((type)0))))
 
-extern void spice_alignment_warning(const char *loc, void *p, unsigned sz);
-static inline  void *spice_alignment_check(const char *loc,
-                                           void *ptr, unsigned sz)
-{
-#ifndef NDEBUG
-    if (G_UNLIKELY(((uintptr_t) ptr & (sz-1U)) != 0))
-        spice_alignment_warning(loc, ptr, sz);
-#endif // NDEBUG
-    return ptr;
-
-}
-
-/* Misaligned cast to a type with stricter alignment */
-#ifndef SPICE_DEBUG_ALIGNMENT
-#define SPICE_UNALIGNED_CAST(type, value) ((type)(void *)(value))
-
-#else // SPICE_DEBUG_ALIGNMENT
 #define SPICE_UNALIGNED_CAST(type, value)                               \
     ((type)spice_alignment_weak_check(SPICE_STRLOC,                     \
                                       (void *)(value),                  \
                                       __alignof(*((type)0))))
 
+extern void spice_alignment_warning(const char *loc, void *p, unsigned sz);
+extern void spice_alignment_debug(const char *loc, void *p, unsigned sz);
+
+static inline  void *spice_alignment_check(const char *loc,
+                                           void *ptr, unsigned sz)
+{
+    if (G_UNLIKELY(((uintptr_t) ptr & (sz-1U)) != 0))
+        spice_alignment_warning(loc, ptr, sz);
+    return ptr;
+
+}
+
 static inline void *spice_alignment_weak_check(const char *loc,
                                                void *ptr, unsigned sz)
 {
-    extern void spice_alignment_debug(const char *loc, void *p, unsigned sz);
     if (G_UNLIKELY(((uintptr_t) ptr & (sz-1U)) != 0))
         spice_alignment_debug(loc, ptr, sz);
     return ptr;
