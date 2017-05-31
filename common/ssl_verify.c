@@ -51,36 +51,36 @@ static int verify_pubkey(X509* cert, const char *key, size_t key_size)
         return 0;
 
     if (!cert) {
-        spice_debug("warning: no cert!");
+        spice_trace(ssl, "warning: no cert!");
         return 0;
     }
 
     cert_pubkey = X509_get_pubkey(cert);
     if (!cert_pubkey) {
-        spice_debug("warning: reading public key from certificate failed");
+        spice_trace(ssl, "warning: reading public key from certificate failed");
         goto finish;
     }
 
     bio = BIO_new_mem_buf((void*)key, key_size);
     if (!bio) {
-        spice_debug("creating BIO failed");
+        spice_trace(ssl, "creating BIO failed");
         goto finish;
     }
 
     orig_pubkey = d2i_PUBKEY_bio(bio, NULL);
     if (!orig_pubkey) {
-        spice_debug("reading pubkey from bio failed");
+        spice_trace(ssl, "reading pubkey from bio failed");
         goto finish;
     }
 
     ret = EVP_PKEY_cmp(orig_pubkey, cert_pubkey);
 
     if (ret == 1) {
-        spice_debug("public keys match");
+        spice_trace(ssl, "public keys match");
     } else if (ret == 0) {
-        spice_debug("public keys mismatch");
+        spice_trace(ssl, "public keys mismatch");
     } else {
-        spice_debug("public keys types mismatch");
+        spice_trace(ssl, "public keys types mismatch");
     }
 
 finish:
@@ -162,7 +162,7 @@ static int verify_hostname(X509* cert, const char *hostname)
     spice_return_val_if_fail(hostname != NULL, 0);
 
     if (!cert) {
-        spice_debug("warning: no cert!");
+        spice_trace(ssl, "warning: no cert!");
         return 0;
     }
 
@@ -192,7 +192,7 @@ static int verify_hostname(X509* cert, const char *hostname)
                 if (_gnutls_hostname_compare((const char *)ASN1_STRING_get0_data(name->d.dNSName),
                                              ASN1_STRING_length(name->d.dNSName),
                                              hostname)) {
-                    spice_debug("alt name match=%s", ASN1_STRING_get0_data(name->d.dNSName));
+                    spice_trace(ssl, "alt name match=%s", ASN1_STRING_get0_data(name->d.dNSName));
                     GENERAL_NAMES_free(subject_alt_names);
                     return 1;
                 }
@@ -222,7 +222,7 @@ static int verify_hostname(X509* cert, const char *hostname)
                     alt_ip = g_inet_address_new_from_bytes(ASN1_STRING_get0_data(name->d.iPAddress),
                                                            g_inet_address_get_family(ip));
                     alt_ip_string = g_inet_address_to_string(alt_ip);
-                    spice_debug("alt name IP match=%s", alt_ip_string);
+                    spice_trace(ssl, "alt name IP match=%s", alt_ip_string);
 
                     g_free(alt_ip_string);
                     g_object_unref(alt_ip);
@@ -239,7 +239,7 @@ static int verify_hostname(X509* cert, const char *hostname)
     }
 
     if (found_dns_name) {
-        spice_debug("warning: SubjectAltName mismatch");
+        spice_trace(ssl, "warning: SubjectAltName mismatch");
         return 0;
     }
 
@@ -263,7 +263,7 @@ static int verify_hostname(X509* cert, const char *hostname)
             if (_gnutls_hostname_compare((const char*)ASN1_STRING_get0_data(cn_asn1),
                                          ASN1_STRING_length(cn_asn1),
                                          hostname)) {
-                spice_debug("common name match=%s", (char*)ASN1_STRING_get0_data(cn_asn1));
+                spice_trace(ssl, "common name match=%s", (char*)ASN1_STRING_get0_data(cn_asn1));
                 cn_match = 1;
                 break;
             }
@@ -271,7 +271,7 @@ static int verify_hostname(X509* cert, const char *hostname)
     }
 
     if (!cn_match) {
-        spice_debug("warning: common name mismatch");
+        spice_trace(ssl, "warning: common name mismatch");
     }
 
     return cn_match;
@@ -295,7 +295,7 @@ static X509_NAME* subject_to_x509_name(const char *subject, int *nentries)
     in_subject = X509_NAME_new();
 
     if (!in_subject || !key || !val) {
-        spice_debug("failed to allocate");
+        spice_trace(ssl, "failed to allocate");
         return NULL;
     }
 
@@ -308,7 +308,7 @@ static X509_NAME* subject_to_x509_name(const char *subject, int *nentries)
         if (*p == '\\') {
             ++p;
             if (*p != '\\' && *p != ',') {
-                spice_debug("Invalid character after \\");
+                spice_trace(ssl, "Invalid character after \\");
                 goto fail;
             }
             escape = 1;
@@ -342,7 +342,7 @@ static X509_NAME* subject_to_x509_name(const char *subject, int *nentries)
                                                 MBSTRING_UTF8,
                                                 (const unsigned char*)val,
                                                 -1, -1, 0)) {
-                    spice_debug("warning: failed to add entry %s=%s to X509_NAME",
+                    spice_trace(ssl, "warning: failed to add entry %s=%s to X509_NAME",
                                 key, val);
                     goto fail;
                 }
@@ -377,25 +377,25 @@ static int verify_subject(X509* cert, SpiceOpenSSLVerify* verify)
     int in_entries;
 
     if (!cert) {
-        spice_debug("warning: no cert!");
+        spice_trace(ssl, "warning: no cert!");
         return 0;
     }
 
     cert_subject = X509_get_subject_name(cert);
     if (!cert_subject) {
-        spice_debug("warning: reading certificate subject failed");
+        spice_trace(ssl, "warning: reading certificate subject failed");
         return 0;
     }
 
     in_subject = subject_to_x509_name(verify->subject, &in_entries);
     if (!in_subject) {
-        spice_debug("warning: no in_subject!");
+        spice_trace(ssl, "warning: no in_subject!");
         return 0;
     }
 
     /* Note: this check is redundant with the pre-condition in X509_NAME_cmp */
     if (X509_NAME_entry_count(cert_subject) != in_entries) {
-        spice_debug("subject mismatch: #entries cert=%d, input=%d",
+        spice_trace(ssl, "subject mismatch: #entries cert=%d, input=%d",
             X509_NAME_entry_count(cert_subject), in_entries);
         X509_NAME_free(in_subject);
         return 0;
@@ -404,17 +404,17 @@ static int verify_subject(X509* cert, SpiceOpenSSLVerify* verify)
     ret = X509_NAME_cmp(cert_subject, in_subject);
 
     if (ret == 0) {
-        spice_debug("subjects match");
+        spice_trace(ssl, "subjects match");
     } else {
         char *p;
-        spice_debug("subjects mismatch");
+        spice_trace(ssl, "subjects mismatch");
 
         p = X509_NAME_oneline(cert_subject, NULL, 0);
-        spice_debug("cert_subject: %s", p);
+        spice_trace(ssl, "cert_subject: %s", p);
         free(p);
 
         p = X509_NAME_oneline(in_subject, NULL, 0);
-        spice_debug("in_subject:   %s", p);
+        spice_trace(ssl, "in_subject:   %s", p);
         free(p);
     }
     X509_NAME_free(in_subject);
@@ -451,7 +451,7 @@ static int openssl_verify(int preverify_ok, X509_STORE_CTX *ctx)
                 return 1;
 
             if (err == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN)
-                spice_debug("server certificate not being signed by the provided CA");
+                spice_trace(ssl, "server certificate not being signed by the provided CA");
 
             return 0;
         } else
@@ -460,7 +460,7 @@ static int openssl_verify(int preverify_ok, X509_STORE_CTX *ctx)
 
     /* depth == 0 */
     if (!cert) {
-        spice_debug("failed to get server certificate");
+        spice_trace(ssl, "failed to get server certificate");
         return 0;
     }
 
