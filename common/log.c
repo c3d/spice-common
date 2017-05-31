@@ -21,6 +21,7 @@
 
 #include <glib.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 #include <sys/types.h>
 #ifndef _MSC_VER
@@ -49,6 +50,7 @@ static GLogLevelFlags spice_log_level_to_glib(SpiceLogLevel level)
         [ SPICE_LOG_LEVEL_WARNING ] = G_LOG_LEVEL_WARNING,
         [ SPICE_LOG_LEVEL_INFO ] = G_LOG_LEVEL_INFO,
         [ SPICE_LOG_LEVEL_DEBUG ] = G_LOG_LEVEL_DEBUG,
+        [ SPICE_LOG_LEVEL_TRACE ] = G_LOG_LEVEL_DEBUG,
     };
     g_return_val_if_fail (level >= 0, G_LOG_LEVEL_ERROR);
     g_return_val_if_fail (level < G_N_ELEMENTS(glib_levels), G_LOG_LEVEL_DEBUG);
@@ -129,6 +131,9 @@ static void spice_logger(const gchar *log_domain,
 
 SPICE_CONSTRUCTOR_FUNC(spice_log_init)
 {
+    char *trace_spec = getenv("SPICE_TRACES");
+    if (trace_spec)
+        spice_set_trace(trace_spec);
 
     spice_log_set_debug_level();
     spice_log_set_abort_level();
@@ -184,7 +189,78 @@ void spice_log(const char *log_domain,
 {
     va_list args;
 
+    g_return_if_fail(spice_log_level_to_glib(log_level) != 0);
+
+    if (log_level == SPICE_LOG_LEVEL_TRACE) {
+        if (TRACE(stderr)) {
+            va_start (args, format);
+            vfprintf(stderr, format, args);
+            fputs("\n", stderr);
+        }
+        if (!TRACE(gliblog))
+            return;
+    }
+
+    if ((log_level & G_LOG_LEVEL_MASK) > glib_debug_level) {
+        return; // do not print anything
+    }
+
     va_start (args, format);
     spice_logv (log_domain, log_level, strloc, function, format, args);
     va_end (args);
 }
+
+
+int spice_set_trace(const char *trace_spec)
+{
+    const enum number_of_traces {
+#define SPICE_TRACE(name, value, info)   TRACE_##name,
+#include "spice-traces.def"
+        TRACE_COUNT
+    } number_of_traces = TRACE_COUNT;
+    int count = 0;
+
+    gchar **traces = g_strsplit(trace_spec, ":", number_of_traces);
+    for (gchar **trace = traces; *trace; trace++) {
+        int set_value = 1;
+        char *equal_sign = strstr(*trace, "=");
+        gchar *trace_name = *trace;
+        int pattern = *trace_name == '*';
+        if (pattern)
+            trace_name++;
+        if (equal_sign) {
+            char *end;
+            set_value = strtol(equal_sign + 1, &end, 10);
+            if (end == equal_sign + 1 || *end != 0) {
+                g_strfreev(traces);
+                return -1;
+            }
+            *equal_sign = '\0';
+        }
+#define SPICE_TRACE(name, init, info)                               \
+        if ((pattern && strstr(#name, trace_name) ||                \
+             strcmp(#name, trace_name) == 0)) {                     \
+            spice_traces.name = set_value;                          \
+        }
+#include "spice-traces.def"
+        {
+            g_strfreev(traces);
+            return -2;
+        }
+        count++;
+    }
+    g_strfreev(traces);
+    return count;
+}
+
+struct spice_traces spice_traces =
+{
+/* Initialize tweaks first, to match structure declaration in log.h */
+#define SPICE_TWEAK(name, init, info)   init,
+#define SPICE_TRACE(name, init, info)
+#include "spice-traces.def"
+
+#define SPICE_TWEAK(name, init, info)
+#define SPICE_TRACE(name, init, info)   init,
+#include "spice-traces.def"
+};

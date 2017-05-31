@@ -39,6 +39,7 @@ typedef enum {
     SPICE_LOG_LEVEL_WARNING,
     SPICE_LOG_LEVEL_INFO,
     SPICE_LOG_LEVEL_DEBUG,
+    SPICE_LOG_LEVEL_TRACE
 } SpiceLogLevel;
 
 void spice_log(const char *log_domain,
@@ -106,6 +107,37 @@ void spice_log(const char *log_domain,
 #define spice_static_assert(x) SPICE_STMT_START {       \
     spice_assert(x);                                    \
 } SPICE_STMT_END
+
+
+/* Tracing facilities */
+#define TRACE(name)     (spice_traces.name)
+#define IFTRACE(name)   if TRACE(name)
+#define spice_trace(name, format, ...)                          \
+    G_STMT_START {                                              \
+        IFTRACE(name)                                           \
+            spice_log(SPICE_LOG_DOMAIN,                         \
+                      SPICE_LOG_LEVEL_TRACE,                    \
+                      SPICE_STRLOC, __FUNCTION__,               \
+                      "[" #name "] " format, ## __VA_ARGS__);   \
+        } G_STMT_END
+
+
+/* Set trace according to trace spec.
+   A trace-spec is a colon-separated list of trace names or name=value pairs.
+   The name can begin with '*' to match all traces containing that name. */
+extern int spice_set_trace(const char *trace_spec);
+
+
+extern struct spice_traces {
+    /* Group all booleans together to save space */
+#define SPICE_TWEAK(name, init, info)   int name;
+#define SPICE_TRACE(name, init, info)
+#include "spice-traces.def"
+
+#define SPICE_TWEAK(name, init, info)
+#define SPICE_TRACE(name, init, info)   int name : 1;
+#include "spice-traces.def"
+} spice_traces;
 
 SPICE_END_DECLS
 

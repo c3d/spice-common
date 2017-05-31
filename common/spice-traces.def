@@ -1,0 +1,48 @@
+/*
+   Copyright (C) 2012 Red Hat, Inc.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, see <http://www.gnu.org/licenses/>.
+*/
+
+/* This file defines the 'traces' and 'tweaks' for Spice.
+   Traces are boolean flags that can be set at runtime and easily tested.
+   Tweaks are integer values that can be tweaked for tuning or debug,
+   e.g. buffer sizes, bandwidth control parameters, etc.
+
+   This file is designed to be included multiple times and keep definitions
+   consistent between the various locations where it's included.
+   Before #include'ing it, you should define at least SPICE_TRACE.
+
+   SPICE_TRACE(name, default_value, info): Define a trace (boolean flag)
+   SPICE_TWEAK(name, default_value, info): Define a runtime settable value
+
+   SPICE_TWEAK defaults to SPICE_TRACE if not specifically defined.
+   You can also specialize SPICE_TWEAK in case the SPICE_TRACE definition
+   does not work for this specific use case.
+*/
+
+#ifndef SPICE_TWEAK
+#define SPICE_TWEAK(name, value, info)       SPICE_TRACE(name, value, info)
+#endif // SPICE_TWEAK
+
+SPICE_TRACE(stderr,     1, "Send traces to standard error")
+SPICE_TRACE(gliblog,    0, "Send traces to glib logging facility")
+SPICE_TRACE(init,       0, "Initialization")
+SPICE_TRACE(channel,    0, "Channel configuration and setup")
+SPICE_TRACE(rect,       0, "Rectangles debug")
+SPICE_TRACE(ssl,        0, "SSL verification")
+
+/* Undefine symbols for easier re-inclusion of this file */
+#undef SPICE_TWEAK
+#undef SPICE_TRACE
