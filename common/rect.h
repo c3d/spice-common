@@ -88,7 +88,7 @@ static inline int rect_get_area(const SpiceRect *r)
 
 static inline void rect_debug(const SpiceRect *r)
 {
-    spice_debug("(%d, %d) (%d, %d)", r->left, r->top, r->right, r->bottom);
+    spice_trace(rect, "(%d, %d) (%d, %d)", r->left, r->top, r->right, r->bottom);
 }
 
 SPICE_END_DECLS
