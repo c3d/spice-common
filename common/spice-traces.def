@@ -36,12 +36,16 @@
 #define SPICE_TWEAK(name, value, info)       SPICE_TRACE(name, value, info)
 #endif // SPICE_TWEAK
 
-SPICE_TRACE(stderr,     1, "Send traces to standard error")
-SPICE_TRACE(gliblog,    0, "Send traces to glib logging facility")
-SPICE_TRACE(init,       0, "Initialization")
-SPICE_TRACE(channel,    0, "Channel configuration and setup")
-SPICE_TRACE(rect,       0, "Rectangles debug")
-SPICE_TRACE(ssl,        0, "SSL verification")
+SPICE_TRACE(trace_stderr,       1, "Send traces to standard error")
+SPICE_TRACE(trace_log,          0, "Send traces to glib logging facility")
+SPICE_TRACE(trace_function,     0, "Show function in trace output")
+SPICE_TRACE(trace_location,     0, "Show code location in trace output")
+SPICE_TRACE(trace_timestamp,    0, "Show time stamp in trace output")
+SPICE_TRACE(trace_set,          0, "Show which traces are being set")
+SPICE_TRACE(init,               0, "Initialization")
+SPICE_TRACE(channel_debug,      0, "Channel debug (CHANNEL_DEBUG macro)")
+SPICE_TRACE(rect,               0, "Rectangles debug")
+SPICE_TRACE(ssl,                0, "SSL verification")
 
 /* Undefine symbols for easier re-inclusion of this file */
 #undef SPICE_TWEAK

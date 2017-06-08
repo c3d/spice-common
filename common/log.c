@@ -192,12 +192,22 @@ void spice_log(const char *log_domain,
     g_return_if_fail(spice_log_level_to_glib(log_level) != 0);
 
     if (log_level == SPICE_LOG_LEVEL_TRACE) {
-        if (TRACE(stderr)) {
+        if (TRACE(trace_stderr)) {
             va_start (args, format);
+            IFTRACE(trace_timestamp) {
+                static guint64 start = 0;
+                guint64 now = g_get_monotonic_time() - start;
+                if (start == 0)
+                    start = now;
+                fprintf(stderr, "%lu.%06lu:", now / 1000000, now % 1000000);
+            }
+            IFTRACE(trace_location)  { fprintf(stderr, "%s:", strloc); }
+            IFTRACE(trace_function)  { fprintf(stderr, "(%s)", function); }
             vfprintf(stderr, format, args);
             fputs("\n", stderr);
+            va_end(args);
         }
-        if (!TRACE(gliblog))
+        if (!TRACE(trace_log))
             return;
     }
 
@@ -220,12 +230,14 @@ int spice_set_trace(const char *trace_spec)
     } number_of_traces = TRACE_COUNT;
     int count = 0;
 
+    spice_trace(trace_set, "Trace specification '%s'", trace_spec);
     gchar **traces = g_strsplit(trace_spec, ":", number_of_traces);
     for (gchar **trace = traces; *trace; trace++) {
         int set_value = 1;
         char *equal_sign = strstr(*trace, "=");
         gchar *trace_name = *trace;
         int pattern = *trace_name == '*';
+        unsigned settings_applied = 0;
         if (pattern)
             trace_name++;
         if (equal_sign) {
@@ -237,12 +249,28 @@ int spice_set_trace(const char *trace_spec)
             }
             *equal_sign = '\0';
         }
-#define SPICE_TRACE(name, init, info)                               \
-        if ((pattern && strstr(#name, trace_name) ||                \
-             strcmp(#name, trace_name) == 0)) {                     \
-            spice_traces.name = set_value;                          \
+        spice_trace(trace_set, "Trace name '%s'%s, value=%d",
+                    trace_name, pattern ? " (pattern)" : "", set_value);
+
+#define SPICE_TRACE(name, init, info)                           \
+        if ((pattern && strstr(#name, trace_name) ||            \
+             strcmp(#name, trace_name) == 0)) {                 \
+            spice_traces.name = set_value;                      \
+            spice_trace(trace_set,                              \
+                        "Set %s=%d", #name, set_value);         \
+            settings_applied++;                                 \
+        }
+#define SPICE_TWEAK(name, init, info)                           \
+        if (!pattern && strcmp(#name, trace_name) == 0)) {      \
+            spice_traces.name = set_value;                      \
+            spice_trace(trace_set,                              \
+                        "Set %s=%d", #name, set_value);         \
+            settings_applied++;                                 \
         }
 #include "spice-traces.def"
+
+        spice_trace(trace_set, "Set %u trace variables", settings_applied);
+        if (settings_applied == 0)
         {
             g_strfreev(traces);
             return -2;
