@@ -273,7 +273,7 @@ int spice_set_trace(const char *trace_spec)
             settings_applied++;                                 \
         }
 #define SPICE_TWEAK(name, init, info)                           \
-        if (!pattern && strcmp(#name, trace_name) == 0)) {      \
+        if (!pattern && strcmp(#name, trace_name) == 0) {       \
             spice_traces.name = set_value;                      \
             spice_trace(trace_set,                              \
                         "Set %s=%d", #name, set_value);         \
