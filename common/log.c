@@ -219,7 +219,7 @@ void spice_log(const char *log_domain,
             fputs("\n", stderr);
             va_end(args);
         }
-        if (!TRACE(trace_log))
+        if (!TRACE(trace_stdlog))
             return;
     }
 
