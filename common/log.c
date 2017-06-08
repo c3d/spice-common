@@ -324,8 +324,8 @@ int spice_set_trace(const char *trace_spec)
         spice_trace(trace_set, "Set %u trace variables", settings_applied);
         if (settings_applied == 0)
         {
-            g_warning("The pattern '%s' does not match any valid trace name",
-                      trace_name);
+            g_warning("The %s '%s' does not match any valid trace name",
+                      pattern ? "pattern" : "name", trace_name);
             rc = -2;
         }
         count++;
