@@ -133,7 +133,7 @@ void spice_log(const char *log_domain,
 void spice_log_hexdump(const char *log_domain,
                        const char *strloc,
                        const char *function,
-                       void *data, size_t length);
+                       const void *data, size_t length);
 
 /* Set trace according to trace spec.
    A trace-spec is a colon-separated list of trace names or name=value pairs.

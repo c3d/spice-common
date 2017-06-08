@@ -246,7 +246,7 @@ void spice_log(const char *log_domain,
 void spice_log_hexdump(const char *log_domain,
                        const char *strloc,
                        const char *function,
-                       void *data, size_t length)
+                       const void *data, size_t length)
 {
     va_list args;
 
