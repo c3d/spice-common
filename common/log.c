@@ -202,11 +202,11 @@ static void spice_log_header(const char *log_domain,
         guint64 now = g_get_monotonic_time() - start;
         if (start == 0)
             start = now;
-        fprintf(stderr, "%lu.%06lu:", now / 1000000, now % 1000000);
+        printf("%lu.%06lu:", now / 1000000, now % 1000000);
     }
-    IFTRACE(trace_name)      { fprintf(stderr, "%s", trace_name); }
-    IFTRACE(trace_location)  { fprintf(stderr, "%s:", strloc); }
-    IFTRACE(trace_function)  { fprintf(stderr, "(%s)", function); }
+    IFTRACE(trace_name)      { printf("%s", trace_name); }
+    IFTRACE(trace_location)  { printf("%s:", strloc); }
+    IFTRACE(trace_function)  { printf("(%s)", function); }
 }
 
 
@@ -222,11 +222,11 @@ void spice_log(const char *log_domain,
     g_return_if_fail(spice_log_level_to_glib(log_level) != 0);
 
     if (log_level == SPICE_LOG_LEVEL_TRACE) {
-        if (TRACE(trace_stderr)) {
+        if (TRACE(trace_stdout)) {
             va_start (args, format);
             spice_log_header(log_domain, strloc, function);
-            vfprintf(stderr, format, args);
-            fputs("\n", stderr);
+            vprintf(format, args);
+            putchar('\n');
             va_end(args);
         }
         if (!TRACE(trace_stdlog))
@@ -250,21 +250,21 @@ void spice_log_hexdump(const char *log_domain,
 {
     va_list args;
 
-    if (TRACE(trace_stderr)) {
+    if (TRACE(trace_stdout)) {
         unsigned char *ptr = data;
         size_t count = 0;
         while (count < length) {
             if (count % 16 == 0) {
                 spice_log_header(log_domain, strloc, function);
-                fprintf(stderr, "%08lX: ", count);
+                printf("%08lX: ", count);
             }
-            fprintf(stderr, " %02X", ptr[count]);
+            printf(" %02X", ptr[count]);
             if (count % 16 == 15)
-                fputc('\n', stderr);
+                putchar('\n');
             count++;
         }
         if (count && count % 16 != 15)
-            fputc('\n', stderr);
+            putchar('\n');
     }
 }
 
