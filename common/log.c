@@ -84,11 +84,15 @@ static void spice_log_set_debug_level(void)
              * SPICE_DEBUG_LEVEL is used
              */
             debug_env = (char *)g_getenv("G_MESSAGES_DEBUG");
+            const char *debug_log_domain =
+#define SPICE_TRACE(name, value, info)  SPICE_LOG_DOMAIN "[" #name "] "
+#include "spice-traces.def"
+                SPICE_LOG_DOMAIN;
             if (debug_env == NULL) {
-                g_setenv("G_MESSAGES_DEBUG", SPICE_LOG_DOMAIN, FALSE);
+                g_setenv("G_MESSAGES_DEBUG", debug_log_domain, FALSE);
             } else {
-                debug_env = g_strconcat(debug_env, " ", SPICE_LOG_DOMAIN, NULL);
-                g_setenv("G_MESSAGES_DEBUG", SPICE_LOG_DOMAIN, FALSE);
+                debug_env = g_strconcat(debug_env, " ", debug_log_domain, NULL);
+                g_setenv("G_MESSAGES_DEBUG", debug_env, FALSE);
                 g_free(debug_env);
             }
         }
@@ -112,6 +116,9 @@ static void spice_log_set_abort_level(void)
                 glib_abort_level >>= 1;
             }
             g_log_set_fatal_mask(SPICE_LOG_DOMAIN, fatal_mask);
+#define SPICE_TRACE(name, value, info)                                 \
+            g_log_set_fatal_mask(SPICE_LOG_DOMAIN "[" #name "]", fatal_mask);
+#include "spice-traces.def"
         } else {
             abort_level = SPICE_ABORT_LEVEL_DEFAULT;
         }
@@ -137,9 +144,13 @@ SPICE_CONSTRUCTOR_FUNC(spice_log_init)
 
     spice_log_set_debug_level();
     spice_log_set_abort_level();
-    g_log_set_handler(SPICE_LOG_DOMAIN,
-                      G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION,
-                      spice_logger, NULL);
+    GLogLevelFlags spice_levels = G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION;
+    g_log_set_handler(SPICE_LOG_DOMAIN, spice_levels, spice_logger, NULL);
+#define SPICE_TRACE(name, value, info)                  \
+    g_log_set_handler(SPICE_LOG_DOMAIN "[" #name "]",   \
+                      spice_levels, spice_logger, NULL);
+#include "spice-traces.def"
+
     /* Threading is always enabled from 2.31.0 onwards */
     /* Our logging is potentially used from different threads.
      * Older glibs require that g_thread_init() is called when
@@ -201,6 +212,7 @@ void spice_log(const char *log_domain,
                     start = now;
                 fprintf(stderr, "%lu.%06lu:", now / 1000000, now % 1000000);
             }
+            IFTRACE(trace_name)      { fprintf(stderr, "%s", log_domain + (sizeof(SPICE_LOG_DOMAIN))-1); }
             IFTRACE(trace_location)  { fprintf(stderr, "%s:", strloc); }
             IFTRACE(trace_function)  { fprintf(stderr, "(%s)", function); }
             vfprintf(stderr, format, args);

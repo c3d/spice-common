@@ -115,10 +115,10 @@ void spice_log(const char *log_domain,
 #define spice_trace(name, format, ...)                          \
     G_STMT_START {                                              \
         IFTRACE(name)                                           \
-            spice_log(SPICE_LOG_DOMAIN,                         \
+            spice_log(SPICE_LOG_DOMAIN "[" #name "]",           \
                       SPICE_LOG_LEVEL_TRACE,                    \
                       SPICE_STRLOC, __FUNCTION__,               \
-                      "[" #name "] " format, ## __VA_ARGS__);   \
+                      format, ## __VA_ARGS__);                  \
         } G_STMT_END
 
 
