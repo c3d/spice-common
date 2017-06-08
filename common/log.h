@@ -111,6 +111,7 @@ void spice_log(const char *log_domain,
 
 /* Tracing facilities */
 #define TRACE(name)     (spice_traces.name)
+#define TWEAK(name)     (spice_traces.name)
 #define IFTRACE(name)   if (G_UNLIKELY(TRACE(name)))
 #define spice_trace(name, format, ...)                          \
     G_STMT_START {                                              \
