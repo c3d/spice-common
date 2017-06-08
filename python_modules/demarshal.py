@@ -933,6 +933,17 @@ def write_member_parser(writer, container, member, dest, scope):
             else:
                 dest_var = dest.get_ref(member.name)
             writer.assign(dest_var, "consume_%s(&in)" % (t.primitive_type()))
+
+            printf_format = { 'uint8':  'u',
+                              'int8':   'd',
+                              'uint16': 'u',
+                              'int16':  'd',
+                              'uint32': 'u',
+                              'int32':  'd',
+                              'uint64': 'llu',
+                              'int64':  'lld',
+                              'fd':     'd' }
+            writer.statement("spice_trace(marshall_read, \"  %s.%s=%%%s\", %s)" % (container.name, member.name, printf_format[t.primitive_type()], dest_var))
         #TODO validate e.g. flags and enums
     elif t.is_array():
         nelements = read_array_len(writer, member.name, t, dest, scope, False)

@@ -63,6 +63,7 @@ class RootMarshallingSource(MarshallingSource):
         self.c_type = c_type
         self.sizeof = sizeof
         self.pointer = pointer
+        self.name = c_type
         assert pointer != None
 
     def get_self_ref(self):
@@ -323,11 +324,24 @@ def write_member_marshaller(writer, container, member, src, scope):
         if member.has_attr("zero"):
             writer.statement("spice_marshaller_add_%s(m, 0)" % (t.primitive_type()))
         if member.has_attr("bytes_count"):
+            # DDD: This seems to be presently unused
             var = "%s__ref" % member.name
             scope.variable_def("void *", var)
+            writer.statement("spice_trace(marshall_bad, \"  %s.%s=%%%s\", %s)" % (src.name, member.name, t.primitive_type(), src.get_ref(member.name)))
             writer.statement("%s = spice_marshaller_add_%s(m, %s)" % (var, t.primitive_type(), 0))
 
         else:
+            printf_format = { 'uint8':  'u',
+                              'int8':   'd',
+                              'uint16': 'u',
+                              'int16':  'd',
+                              'uint32': 'u',
+                              'int32':  'd',
+                              'uint64': 'llu',
+                              'int64':  'lld',
+                              'fd':     'd' }
+
+            writer.statement("spice_trace(marshall_write, \"  %s.%s=%%%s\", %s)" % (src.name, member.name, printf_format[t.primitive_type()], src.get_ref(member.name)))
             writer.statement("spice_marshaller_add_%s(m, %s)" % (t.primitive_type(), src.get_ref(member.name)))
     elif t.is_array():
         write_array_marshaller(writer, member, t, src, scope)
@@ -341,6 +355,7 @@ def write_member_marshaller(writer, container, member, src, scope):
 def write_container_marshaller(writer, container, src):
     saved_out_prefix = writer.out_prefix
     with src.declare(writer) as scope:
+
         for m in container.members:
             writer.out_prefix = saved_out_prefix
             write_member_marshaller(writer, container, m, src, scope)
