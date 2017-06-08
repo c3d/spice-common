@@ -246,44 +246,49 @@ int spice_set_trace(const char *trace_spec)
     gchar **traces = g_strsplit(trace_spec, ":", number_of_traces);
     for (gchar **trace = traces; *trace; trace++) {
         int set_value = 1;
-        char *equal_sign = strstr(*trace, "=");
         gchar *trace_name = *trace;
+        char *equal_sign = strstr(trace_name, "=");
         int pattern = *trace_name == '*';
         unsigned settings_applied = 0;
+        size_t cmplen = ~0;
         if (pattern)
             trace_name++;
         if (equal_sign) {
             char *end;
             set_value = strtol(equal_sign + 1, &end, 10);
             if (end == equal_sign + 1 || *end != 0) {
+                g_warning("The value '%s' in '%s' is not a valid integer",
+                          equal_sign + 1, trace_name);
                 g_strfreev(traces);
                 return -1;
             }
-            *equal_sign = '\0';
+            cmplen = equal_sign - trace_name;
         }
         spice_trace(trace_set, "Trace name '%s'%s, value=%d",
                     trace_name, pattern ? " (pattern)" : "", set_value);
 
 #define SPICE_TRACE(name, init, info)                           \
-        if ((pattern && strstr(#name, trace_name) ||            \
-             strcmp(#name, trace_name) == 0)) {                 \
+        if ((pattern && strnstr(#name, trace_name, cmplen) ||   \
+             strncmp(#name, trace_name, cmplen) == 0)) {        \
             spice_traces.name = set_value;                      \
             spice_trace(trace_set,                              \
                         "Set %s=%d", #name, set_value);         \
             settings_applied++;                                 \
         }
-#define SPICE_TWEAK(name, init, info)                           \
-        if (!pattern && strcmp(#name, trace_name) == 0) {       \
-            spice_traces.name = set_value;                      \
-            spice_trace(trace_set,                              \
-                        "Set %s=%d", #name, set_value);         \
-            settings_applied++;                                 \
+#define SPICE_TWEAK(name, init, info)                                   \
+        if (!pattern && strncmp(#name, trace_name, cmplen) == 0) {      \
+            spice_traces.name = set_value;                              \
+            spice_trace(trace_set,                                      \
+                        "Set %s=%d", #name, set_value);                 \
+            settings_applied++;                                         \
         }
 #include "spice-traces.def"
 
         spice_trace(trace_set, "Set %u trace variables", settings_applied);
         if (settings_applied == 0)
         {
+            g_warning("The pattern '%s' does not match any valid trace name",
+                      trace_name);
             g_strfreev(traces);
             return -2;
         }
