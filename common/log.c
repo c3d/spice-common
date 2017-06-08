@@ -191,6 +191,25 @@ static void spice_logv(const char *log_domain,
     }
 }
 
+
+static void spice_log_header(const char *log_domain,
+                             const char *strloc,
+                             const char *function)
+{
+    const char *trace_name = log_domain + (sizeof(SPICE_LOG_DOMAIN)-1);
+    IFTRACE(trace_timestamp) {
+        static guint64 start = 0;
+        guint64 now = g_get_monotonic_time() - start;
+        if (start == 0)
+            start = now;
+        fprintf(stderr, "%lu.%06lu:", now / 1000000, now % 1000000);
+    }
+    IFTRACE(trace_name)      { fprintf(stderr, "%s", trace_name); }
+    IFTRACE(trace_location)  { fprintf(stderr, "%s:", strloc); }
+    IFTRACE(trace_function)  { fprintf(stderr, "(%s)", function); }
+}
+
+
 void spice_log(const char *log_domain,
                SpiceLogLevel log_level,
                const char *strloc,
@@ -205,16 +224,7 @@ void spice_log(const char *log_domain,
     if (log_level == SPICE_LOG_LEVEL_TRACE) {
         if (TRACE(trace_stderr)) {
             va_start (args, format);
-            IFTRACE(trace_timestamp) {
-                static guint64 start = 0;
-                guint64 now = g_get_monotonic_time() - start;
-                if (start == 0)
-                    start = now;
-                fprintf(stderr, "%lu.%06lu:", now / 1000000, now % 1000000);
-            }
-            IFTRACE(trace_name)      { fprintf(stderr, "%s", log_domain + (sizeof(SPICE_LOG_DOMAIN))-1); }
-            IFTRACE(trace_location)  { fprintf(stderr, "%s:", strloc); }
-            IFTRACE(trace_function)  { fprintf(stderr, "(%s)", function); }
+            spice_log_header(log_domain, strloc, function);
             vfprintf(stderr, format, args);
             fputs("\n", stderr);
             va_end(args);
@@ -230,6 +240,32 @@ void spice_log(const char *log_domain,
     va_start (args, format);
     spice_logv (log_domain, log_level, strloc, function, format, args);
     va_end (args);
+}
+
+
+void spice_log_hexdump(const char *log_domain,
+                       const char *strloc,
+                       const char *function,
+                       void *data, size_t length)
+{
+    va_list args;
+
+    if (TRACE(trace_stderr)) {
+        unsigned char *ptr = data;
+        size_t count = 0;
+        while (count < length) {
+            if (count % 16 == 0) {
+                spice_log_header(log_domain, strloc, function);
+                fprintf(stderr, "%08lX: ", count);
+            }
+            fprintf(stderr, " %02X", ptr[count]);
+            if (count % 16 == 15)
+                fputc('\n', stderr);
+            count++;
+        }
+        if (count && count % 16 != 15)
+            fputc('\n', stderr);
+    }
 }
 
 
