@@ -637,6 +637,7 @@ class RootDemarshallingDestination(DemarshallingDestination):
         self.c_type = c_type
         self.sizeof = sizeof
         self.pointer = pointer # None == at "end"
+        self.name = c_type
 
     def get_ref(self, member):
         return self.base_var + "->" + member
@@ -671,6 +672,7 @@ class SubDemarshallingDestination(DemarshallingDestination):
         self.base_var = parent_dest.base_var
         self.member = member
         self.is_helper = False
+        self.name = parent_dest.name
 
     def get_ref(self, member):
         return self.parent_dest.get_ref(self.member) + "." + member
@@ -943,7 +945,7 @@ def write_member_parser(writer, container, member, dest, scope):
                               'uint64': 'llu',
                               'int64':  'lld',
                               'fd':     'd' }
-            writer.statement("spice_trace(marshall_read, \"  %s.%s=%%%s\", %s)" % (container.name, member.name, printf_format[t.primitive_type()], dest_var))
+            writer.statement("spice_trace(marshall_read, \"  %s.%s=%%%s\", %s)" % (dest.name, member.name, printf_format[t.primitive_type()], dest_var))
         #TODO validate e.g. flags and enums
     elif t.is_array():
         nelements = read_array_len(writer, member.name, t, dest, scope, False)
