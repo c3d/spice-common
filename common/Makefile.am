@@ -58,6 +58,10 @@ libspice_common_la_SOURCES =		\
 	ssl_verify.c			\
 	ssl_verify.h			\
 	verify.h			\
+	recorder/recorder.c		\
+	recorder/recorder.h		\
+	recorder/recorder_ring.c	\
+	recorder/recorder_ring.h	\
 	$(NULL)
 
 # These 2 files are not build as part of spice-common
