@@ -13,7 +13,7 @@ AC_CONFIG_AUX_DIR([build-aux])
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 
 # Checks for programs
-AM_INIT_AUTOMAKE([1.11 dist-xz no-dist-gzip tar-ustar foreign -Wall -Werror])
+AM_INIT_AUTOMAKE([1.11 dist-xz no-dist-gzip tar-ustar foreign subdir-objects -Wall -Werror])
 AM_MAINTAINER_MODE
 AM_SILENT_RULES([yes])
 LT_INIT
@@ -36,6 +36,10 @@ AC_ARG_ENABLE([alignment-checks],
   enable_alignment_checks="no")
 AS_IF([test "x$enable_alignment_checks" = "xyes"],
       [AC_DEFINE([SPICE_DEBUG_ALIGNMENT], 1, [Enable runtime checks for cast alignment])])
+
+# Configuration checks for the recorder
+AC_CHECK_HEADERS([regex.h sys/mman.h])
+AC_CHECK_FUNCS([sigaction])
 
 # Checks for libraries
 PKG_CHECK_MODULES([PROTOCOL], [spice-protocol >= 0.12.12])
