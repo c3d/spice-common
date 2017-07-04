@@ -22,6 +22,7 @@
 #include <glib.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/types.h>
 #ifndef _MSC_VER
 #include <unistd.h>
@@ -51,6 +52,12 @@ typedef enum {
     SPICE_LOG_LEVEL_DEBUG,
 } SpiceLogLevel;
 
+RECORDER(spice_info,    128, "Default recorder for spice_info");
+RECORDER(spice_debug,   128, "Default recorder for spice_debug");
+RECORDER(spice_warning, 128, "Default recorder for spice_warning");
+RECORDER(spice_error,   128, "Default recorder for spice_error");
+RECORDER(spice_critical,128, "Default recorder for spice_critical");
+
 static GLogLevelFlags spice_log_level_to_glib(SpiceLogLevel level)
 {
     static const GLogLevelFlags glib_levels[] = {
@@ -68,6 +75,10 @@ static GLogLevelFlags spice_log_level_to_glib(SpiceLogLevel level)
 
 static void spice_log_set_debug_level(void)
 {
+    char *debug_env = (char *)g_getenv("G_MESSAGES_DEBUG");
+    if (debug_env) {
+        recorder_trace_set(".*_debug|.*_info");
+    }
     if (glib_debug_level == INT_MAX) {
         const char *debug_str = g_getenv("SPICE_DEBUG_LEVEL");
         if (debug_str != NULL) {
@@ -79,6 +90,13 @@ static void spice_log_set_debug_level(void)
             }
             glib_debug_level = spice_log_level_to_glib(debug_level);
 
+            if (debug_level >= SPICE_LOG_LEVEL_INFO) {
+                recorder_trace_set(".*_info");
+            }
+            if (debug_level >= SPICE_LOG_LEVEL_DEBUG) {
+                recorder_trace_set(".*_debug");
+            }
+
             /* If the debug level is too high, make sure we don't try to enable
              * display of glib debug logs */
             if (debug_level < SPICE_LOG_LEVEL_INFO)
@@ -88,7 +106,6 @@ static void spice_log_set_debug_level(void)
              * Messing with environment variables like this is ugly,
              * but this only happens when the legacy SPICE_DEBUG_LEVEL is used
              */
-            char *debug_env = (char *)g_getenv("G_MESSAGES_DEBUG");
             if (debug_env == NULL) {
                 g_setenv("G_MESSAGES_DEBUG", G_LOG_DOMAIN, FALSE);
             } else {
@@ -134,6 +151,39 @@ static void spice_logger(const gchar *log_domain,
     g_log_default_handler(log_domain, log_level, message, NULL);
 }
 
+static void spice_recorder_format(recorder_show_fn show,
+                                  void *output,
+                                  const char *label,
+                                  const char *location,
+                                  uintptr_t order,
+                                  uintptr_t timestamp,
+                                  const char *message)
+{
+    GLogLevelFlags log_level = G_LOG_LEVEL_INFO;
+
+    /* Check if recorder name ends with _error, _warning, _info */
+    const char *category = strrchr(label, '_');
+    if (category)
+    {
+        category++;
+#define CHECK_CATEGORY(cat,name)                \
+        if (strcmp(category, #cat) == 0) {      \
+            log_level = name;                   \
+        }
+        CHECK_CATEGORY(error,    G_LOG_LEVEL_ERROR);
+        CHECK_CATEGORY(critical, G_LOG_LEVEL_CRITICAL);
+        CHECK_CATEGORY(warning,  G_LOG_LEVEL_WARNING);
+        CHECK_CATEGORY(info,     G_LOG_LEVEL_INFO);
+        CHECK_CATEGORY(debug,    G_LOG_LEVEL_DEBUG);
+#undef CHECK_CATEGORY
+    }
+    g_log(G_LOG_DOMAIN, log_level, "%s:%s: %s", location, label, message);
+    if ((abort_mask & log_level) != 0) {
+        spice_backtrace();
+        abort();
+    }
+}
+
 /* This function is called directly by unit tests because it calls g_setenv
    after the constructor function have already run */
 void spice_log_reinit(void)
@@ -154,6 +204,25 @@ void spice_log_reinit(void)
     if (!g_thread_supported())
         g_thread_init(NULL);
 #endif
+
+    /* Show critical, error and warning messages by default (overridable) */
+    recorder_trace_set(".*_warning|.*_error|.*_critical");
+
+    /* Dump the recorder for unexpected signals, e.g. SIGSEGV */
+    recorder_dump_on_common_signals(0, 0);
+
+    /* Traces can be configured with SPICE_TRACES (or RECORDER_TRACES). */
+    char *spice_traces = getenv("SPICE_TRACES");
+    if (spice_traces) {
+        recorder_trace_set(spice_traces);
+    }
+
+    /* The recorder output goes to the glib logging functions unless
+     * the RECORDER_TRACES variable is set. */
+    char *recorder_traces = getenv("RECORDER_TRACES");
+    if (!recorder_traces) {
+        recorder_configure_format(spice_recorder_format);
+    }
 }
 
 SPICE_CONSTRUCTOR_FUNC(spice_log_init)
