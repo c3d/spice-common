@@ -22,6 +22,7 @@
 #include <glib.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/types.h>
 #ifndef _MSC_VER
 #include <unistd.h>
@@ -133,9 +134,35 @@ static void spice_logger(const gchar *log_domain,
     g_log_default_handler(log_domain, log_level, message, NULL);
 }
 
+static void spice_recorder_format(recorder_show_fn show,
+                                  void *output,
+                                  const char *label,
+                                  const char *location,
+                                  uintptr_t order,
+                                  uintptr_t timestamp,
+                                  const char *message)
+{
+    GLogLevelFlags log_level = G_LOG_LEVEL_INFO;
+    const char *name = strrchr(label, '_');
+    if (name)
+    {
+        name++;
+        switch(*name)
+        {
+        case 'e': case 'E': log_level = G_LOG_LEVEL_ERROR; break;
+        case 'i': case 'I': log_level = G_LOG_LEVEL_INFO; break;
+        case 'w': case 'W': log_level = G_LOG_LEVEL_WARNING; break;
+        case 'c': case 'C': log_level = G_LOG_LEVEL_CRITICAL; break;
+        case 'd': case 'D': log_level = G_LOG_LEVEL_DEBUG; break;
+        }
+    }
+    g_log(G_LOG_DOMAIN, log_level, "[%lu %.6f] %s:%s: %s",
+          (unsigned long) order, (double) timestamp / RECORDER_HZ,
+          location, label, message);
+}
+
 SPICE_CONSTRUCTOR_FUNC(spice_log_init)
 {
-
     spice_log_set_debug_level();
     spice_log_set_abort_level();
     if (glib_debug_level != INT_MAX) {
@@ -154,6 +181,27 @@ SPICE_CONSTRUCTOR_FUNC(spice_log_init)
     if (!g_thread_supported())
         g_thread_init(NULL);
 #endif
+
+    /* If SPICE_TRACES is set, use that and select default recorder output.
+       Otherwise, use glib logging.
+       In both cases, trace critical, error and warning messages */
+    char *spice_traces = getenv("SPICE_TRACES");
+    if (spice_traces) {
+        recorder_trace_set(spice_traces);
+    } else {
+        recorder_configure_format(spice_recorder_format);
+
+        char *debug_env = (char *)g_getenv("G_MESSAGES_DEBUG");
+        if (debug_env == NULL) {
+            g_setenv("G_MESSAGES_DEBUG", G_LOG_DOMAIN, FALSE);
+        } else {
+            debug_env = g_strconcat(debug_env, " ", G_LOG_DOMAIN, NULL);
+            g_setenv("G_MESSAGES_DEBUG", G_LOG_DOMAIN, FALSE);
+            g_free(debug_env);
+        }
+    }
+    recorder_trace_set(".*_warning|.*_error|.*_critical");
+    recorder_dump_on_common_signals(0, 0);
 }
 
 static void spice_logv(const char *log_domain,
@@ -197,3 +245,10 @@ void spice_log(GLogLevelFlags log_level,
     spice_logv (G_LOG_DOMAIN, log_level, strloc, function, format, args);
     va_end (args);
 }
+
+
+RECORDER(spice_info,    128, "Default recorder for spice_info");
+RECORDER(spice_debug,   128, "Default recorder for spice_debug");
+RECORDER(spice_warning, 128, "Default recorder for spice_warning");
+RECORDER(spice_error,   128, "Default recorder for spice_error");
+RECORDER(spice_critical,128, "Default recorder for spice_critical");

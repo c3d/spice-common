@@ -1,0 +1,3 @@
+[submodule "common/recorder"]
+	path = common/recorder
+	url = ../recorder.git
