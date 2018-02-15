@@ -29,7 +29,6 @@ INCLUDES=	. 					\
 DEFINES=	HAVE_CONFIG_H
 
 SOURCES=	backtrace.c                             \
-		canvas_base.c                           \
 		canvas_utils.c                          \
 		lines.c                                 \
 		log.c                                   \
