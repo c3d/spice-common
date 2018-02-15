@@ -19,6 +19,8 @@
 #include <config.h>
 #endif
 
+#define G_LOG_DOMAIN "Spice"
+
 #include <glib.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -40,8 +42,6 @@ static int abort_mask = 0;
 #define SPICE_ABORT_MASK_DEFAULT (G_LOG_LEVEL_CRITICAL|G_LOG_LEVEL_ERROR)
 #endif
 #endif
-
-#define G_LOG_DOMAIN "Spice"
 
 typedef enum {
     SPICE_LOG_LEVEL_ERROR,
