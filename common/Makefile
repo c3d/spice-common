@@ -14,6 +14,7 @@ PKGCONFIGS=	spice-protocol				\
 		gio-2.0					\
 		gthread-2.0				\
 		glib-2.0				\
+		recorder?				\
 		opus?					\
 		celt051?
 
@@ -24,6 +25,7 @@ CONFIG=		alloca					\
 
 INCLUDES=	. 					\
 		..					\
+		../..					\
 		$(TOP)protocol
 
 DEFINES=	HAVE_CONFIG_H
