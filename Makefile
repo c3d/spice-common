@@ -1,4 +1,2 @@
-TOP=../../
-BUILD=$(TOP)build/
 SUBDIRS=common
-include $(BUILD)rules.mk
+include make-it-quick/rules.mk
