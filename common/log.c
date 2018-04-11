@@ -138,6 +138,7 @@ static void spice_logger(const gchar *log_domain,
     g_log_default_handler(log_domain, log_level, message, NULL);
 }
 
+#if HAVE_RECORDER
 static void spice_recorder_format(recorder_show_fn show,
                                   void *output,
                                   const char *label,
@@ -164,6 +165,7 @@ static void spice_recorder_format(recorder_show_fn show,
           (unsigned long) order, (double) timestamp / RECORDER_HZ,
           location, label, message);
 }
+#endif // HAVE_RECORDER
 
 SPICE_CONSTRUCTOR_FUNC(spice_log_init)
 {
@@ -184,11 +186,13 @@ SPICE_CONSTRUCTOR_FUNC(spice_log_init)
     /* If SPICE_TRACES is set, use that and select default recorder output.
        Otherwise, use glib logging.
        In both cases, trace critical, error and warning messages */
+#if HAVE_RECORDER
     char *spice_traces = getenv("SPICE_TRACES");
     if (spice_traces) {
         recorder_trace_set(spice_traces);
     } else {
         recorder_configure_format(spice_recorder_format);
+#endif // HAVE_RECORDER
 
         char *debug_env = (char *)g_getenv("G_MESSAGES_DEBUG");
         if (debug_env == NULL) {
@@ -198,9 +202,12 @@ SPICE_CONSTRUCTOR_FUNC(spice_log_init)
             g_setenv("G_MESSAGES_DEBUG", G_LOG_DOMAIN, FALSE);
             g_free(debug_env);
         }
+        
+#if HAVE_RECORDER
     }
     recorder_trace_set(".*_warning|.*_error|.*_critical");
     recorder_dump_on_common_signals(0, 0);
+#endif
 }
 
 static void spice_logv(const char *log_domain,

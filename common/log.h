@@ -24,7 +24,14 @@
 #include <spice/macros.h>
 
 #include "macros.h"
+
+#if HAVE_RECORDER
 #include "recorder/recorder.h"
+#else
+#define RECORDER(Name, Size, Description)
+#define RECORDER_DECLARE(Name)
+#define RECORD(Name, ...)
+#endif
 
 SPICE_BEGIN_DECLS
 
