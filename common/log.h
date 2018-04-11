@@ -23,15 +23,21 @@
 #include <glib.h>
 #include <spice/macros.h>
 
-#include "macros.h"
-
 #if HAVE_RECORDER
-#include "recorder/recorder.h"
+#include <recorder/recorder.h>
+#define SPICE_LOG(level, format, ...)   RECORD(SPICE_##level##_RECORDER, "" format, ##__VA_ARGS__)
 #else
+#define SPICE_LOG(level, format, ...)   spice_log(G_LOG_LEVEL_##level,          \
+                                                  SPICE_STRLOC, __FUNCTION__,   \
+                                                  "" format, ## __VA_ARGS__)
 #define RECORDER(Name, Size, Description)
 #define RECORDER_DECLARE(Name)
 #define RECORD(Name, ...)
+#define RECORDER_TWEAK_DEFINE(name,value,descr)         uintptr_t recorder_tweak_##name = value
+#define RECORDER_TWEAK(name)                            (record_tweak_##name)
 #endif
+
+#include "macros.h"
 
 SPICE_BEGIN_DECLS
 
@@ -82,23 +88,23 @@ void spice_log(GLogLevelFlags log_level,
     } G_STMT_END
 
 #define spice_info(format, ...) G_STMT_START {                          \
-        RECORD(SPICE_INFO_RECORDER, format, ## __VA_ARGS__);            \
+        SPICE_LOG(INFO, format, ## __VA_ARGS__);                        \
     } G_STMT_END
 
 #define spice_debug(format, ...) G_STMT_START {                         \
-        RECORD(SPICE_DEBUG_RECORDER, format, ## __VA_ARGS__);           \
+        SPICE_LOG(DEBUG, format, ## __VA_ARGS__);                       \
     } G_STMT_END
 
 #define spice_warning(format, ...) G_STMT_START {                       \
-        RECORD(SPICE_WARNING_RECORDER, format, ## __VA_ARGS__);         \
+        SPICE_LOG(WARNING, format, ## __VA_ARGS__);                     \
     } G_STMT_END
 
 #define spice_critical(format, ...) G_STMT_START {                      \
-        RECORD(SPICE_CRITICAL_RECORDER, format, ## __VA_ARGS__);        \
+        SPICE_LOG(CRITICAL, format, ## __VA_ARGS__);                    \
     } G_STMT_END
 
 #define spice_error(format, ...) G_STMT_START {                         \
-        RECORD(SPICE_ERROR_RECORDER, format, ## __VA_ARGS__);           \
+        SPICE_LOG(ERROR, format, ## __VA_ARGS__);                       \
     } G_STMT_END
 
 #define spice_return_if_fail(x) G_STMT_START {                          \
