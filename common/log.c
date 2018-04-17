@@ -84,9 +84,9 @@ static void spice_log_set_debug_level(void)
             if (debug_level < SPICE_LOG_LEVEL_INFO)
                 return;
 
-            /* Make sure GLib default log handler will show the debug messages. Messing with
-             * environment variables like this is ugly, but this only happens when the legacy
-             * SPICE_DEBUG_LEVEL is used
+            /* Make sure GLib default log handler will show the debug messages.
+             * Messing with environment variables like this is ugly,
+             * but this only happens when the legacy SPICE_DEBUG_LEVEL is used
              */
             char *debug_env = (char *)g_getenv("G_MESSAGES_DEBUG");
             if (debug_env == NULL) {
