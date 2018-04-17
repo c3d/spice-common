@@ -71,12 +71,9 @@ static void spice_log_set_debug_level(void)
     if (glib_debug_level == INT_MAX) {
         const char *debug_str = g_getenv("SPICE_DEBUG_LEVEL");
         if (debug_str != NULL) {
-            int debug_level;
-            char *debug_env;
-
             /* FIXME: To be removed after enough deprecation time */
             g_warning("Setting SPICE_DEBUG_LEVEL is deprecated, use G_MESSAGES_DEBUG instead");
-            debug_level = atoi(debug_str);
+            int debug_level = atoi(debug_str);
             if (debug_level > SPICE_LOG_LEVEL_DEBUG) {
                 debug_level = SPICE_LOG_LEVEL_DEBUG;
             }
@@ -91,7 +88,7 @@ static void spice_log_set_debug_level(void)
              * environment variables like this is ugly, but this only happens when the legacy
              * SPICE_DEBUG_LEVEL is used
              */
-            debug_env = (char *)g_getenv("G_MESSAGES_DEBUG");
+            char *debug_env = (char *)g_getenv("G_MESSAGES_DEBUG");
             if (debug_env == NULL) {
                 g_setenv("G_MESSAGES_DEBUG", G_LOG_DOMAIN, FALSE);
             } else {
