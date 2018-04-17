@@ -139,7 +139,6 @@ static void spice_logger(const gchar *log_domain,
 
 SPICE_CONSTRUCTOR_FUNC(spice_log_init)
 {
-
     spice_log_set_debug_level();
     spice_log_set_abort_level();
     g_log_set_handler(G_LOG_DOMAIN,
