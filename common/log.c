@@ -137,8 +137,13 @@ static void spice_logger(const gchar *log_domain,
     g_log_default_handler(log_domain, log_level, message, NULL);
 }
 
-SPICE_CONSTRUCTOR_FUNC(spice_log_init)
+/* This function is called directly by unit tests because it calls g_setenv
+   after the constructor function have already run */
+void spice_log_reinit(void)
 {
+    glib_debug_level = INT_MAX;
+    abort_mask = 0;
+
     spice_log_set_debug_level();
     spice_log_set_abort_level();
     g_log_set_handler(G_LOG_DOMAIN,
@@ -152,6 +157,11 @@ SPICE_CONSTRUCTOR_FUNC(spice_log_init)
     if (!g_thread_supported())
         g_thread_init(NULL);
 #endif
+}
+
+SPICE_CONSTRUCTOR_FUNC(spice_log_init)
+{
+    spice_log_reinit();
 }
 
 static void spice_logv(const char *log_domain,

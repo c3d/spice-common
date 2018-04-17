@@ -25,6 +25,8 @@
 
 #include "common/log.h"
 
+extern void spice_log_reinit(void);
+
 #define OTHER_LOG_DOMAIN "Other"
 #define LOG_OTHER_HELPER(suffix, level)                                          \
     static void G_PASTE(other_, suffix)(const gchar *format, ...)                \
@@ -167,6 +169,8 @@ static void test_spice_non_fatal_g_return_if_fail(void)
 static void test_log_levels(void)
 {
     if (g_test_subprocess()) {
+        g_setenv("G_MESSAGES_DEBUG", "", TRUE);
+        spice_log_reinit();
         g_test_expect_message(G_LOG_DOMAIN,
                               G_LOG_LEVEL_WARNING,
                               "*spice_warning");
@@ -318,6 +322,7 @@ static void test_spice_g_messages_debug(void)
 {
     if (g_test_subprocess()) {
         g_setenv("G_MESSAGES_DEBUG", "Spice", TRUE);
+        spice_log_reinit();
 
         spice_debug("spice_debug");
         spice_info("spice_info");
@@ -343,6 +348,7 @@ static void test_spice_g_messages_debug_all(void)
 {
     if (g_test_subprocess()) {
         g_setenv("G_MESSAGES_DEBUG", "all", TRUE);
+        spice_log_reinit();
 
         spice_debug("spice_debug");
         spice_info("spice_info");
