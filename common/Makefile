@@ -23,9 +23,12 @@ PKGCONFIGS+=	spice-protocol
 endif
 
 CONFIG=		alloca					\
+		sigaction				\
 		<execinfo.h>				\
 		<stdlib.h>				\
-		<alloca.h>
+		<alloca.h>				\
+		<regex.h>				\
+		<sys/mman.h>
 
 INCLUDES=	. 					\
 		..					\
@@ -45,6 +48,8 @@ SOURCES=	backtrace.c                             \
 		mem.c                                   \
 		pixman_utils.c                          \
 		quic.c                                  \
+		recorder/recorder.c			\
+		recorder/recorder_ring.c		\
 		region.c                                \
 		rop3.c                                  \
 		snd_codec.c                             \
