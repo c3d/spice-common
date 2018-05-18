@@ -386,6 +386,23 @@ typedef struct SpiceMsgcDisplayStreamReport {
     uint32_t audio_delay;
 } SpiceMsgcDisplayStreamReport;
 
+typedef struct SpiceMsgDisplayStreamActivateMetrics {
+    uint32_t stream_id;
+    uint32_t unique_id;
+    uint32_t max_window_size;
+    uint32_t timeout_ms;
+    uint32_t last_known_metric;
+} SpiceMsgDisplayStreamActivateMetrics;
+
+typedef struct SpiceMsgcDisplayStreamMetric {
+    uint32_t stream_id;
+    uint32_t metrics_unique_id;
+    uint32_t metric_timestamp;
+    uint32_t metric_duration;
+    uint32_t metric_id;
+    uint32_t metric_value;
+} SpiceMsgcDisplayStreamMetric;
+
 typedef struct SpiceMsgcDisplayGlDrawDone {
 } SpiceMsgcDisplayGlDrawDone;
 
