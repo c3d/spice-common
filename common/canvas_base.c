@@ -3096,6 +3096,7 @@ static void canvas_draw_stroke(SpiceCanvas *spice_canvas, SpiceRect *bbox,
             gc.tile = canvas_get_image(canvas,
                                        stroke->brush.u.pattern.pat,
                                        FALSE);
+            spice_return_if_fail(gc.tile != NULL);
         }
         gc.tile_offset_x = stroke->brush.u.pattern.pos.x;
         gc.tile_offset_y = stroke->brush.u.pattern.pos.y;
@@ -3182,6 +3183,10 @@ static void canvas_draw_rop3(SpiceCanvas *spice_canvas, SpiceRect *bbox,
     heigth = bbox->bottom - bbox->top;
 
     d = canvas_get_image_from_self(spice_canvas, bbox->left, bbox->top, width, heigth, FALSE);
+    if (d == NULL) {
+        spice_critical("no rop3 destination");
+        goto d_error;
+    }
     surface_canvas = canvas_get_surface(canvas, rop3->src_bitmap);
     if (surface_canvas) {
         s = surface_canvas->ops->get_image(surface_canvas, FALSE);
@@ -3200,10 +3205,14 @@ static void canvas_draw_rop3(SpiceCanvas *spice_canvas, SpiceRect *bbox,
         src_pos.x = rop3->src_area.left;
         src_pos.y = rop3->src_area.top;
     }
+    if (s == NULL) {
+        spice_critical("no rop3 source");
+        goto s_error;
+    }
     if (pixman_image_get_width(s) - src_pos.x < width ||
         pixman_image_get_height(s) - src_pos.y < heigth) {
         spice_critical("bad src bitmap size");
-        return;
+        goto s_error;
     }
     if (rop3->brush.type == SPICE_BRUSH_TYPE_PATTERN) {
         SpiceCanvas *_surface_canvas;
@@ -3215,6 +3224,12 @@ static void canvas_draw_rop3(SpiceCanvas *spice_canvas, SpiceRect *bbox,
         } else {
             p = canvas_get_image(canvas, rop3->brush.u.pattern.pat, FALSE);
         }
+        if (p == NULL) {
+            spice_critical("no rop3 pattern");
+            /* degrade to color only */
+            do_rop3_with_color(rop3->rop3, d, s, &src_pos, rop3->brush.u.color);
+            goto p_error;
+        }
         SpicePoint pat_pos;
 
         pat_pos.x = (bbox->left - rop3->brush.u.pattern.pos.x) % pixman_image_get_width(p);
@@ -3224,14 +3239,16 @@ static void canvas_draw_rop3(SpiceCanvas *spice_canvas, SpiceRect *bbox,
     } else {
         do_rop3_with_color(rop3->rop3, d, s, &src_pos, rop3->brush.u.color);
     }
+p_error:
     pixman_image_unref(s);
 
     spice_canvas->ops->blit_image(spice_canvas, &dest_region, d,
                                   bbox->left,
                                   bbox->top);
 
+s_error:
     pixman_image_unref(d);
-
+d_error:
     pixman_region32_fini(&dest_region);
 }
 
@@ -3283,6 +3300,10 @@ static void canvas_draw_composite(SpiceCanvas *spice_canvas, SpiceRect *bbox,
     /* Dest */
     d = canvas_get_image_from_self(spice_canvas, bbox->left, bbox->top, width, height,
                                    (composite->flags & SPICE_COMPOSITE_DEST_OPAQUE));
+    if (d == NULL) {
+        spice_critical("no composite destination");
+        goto d_error;
+    }
 
     /* Src */
     surface_canvas = canvas_get_surface(canvas, composite->src_bitmap);
@@ -3292,6 +3313,11 @@ static void canvas_draw_composite(SpiceCanvas *spice_canvas, SpiceRect *bbox,
     } else {
         s = canvas_get_image(canvas, composite->src_bitmap, FALSE);
     }
+    if (s == NULL) {
+        spice_critical("no composite source");
+        goto s_error;
+    }
+
     if (composite->flags & SPICE_COMPOSITE_HAS_SRC_TRANSFORM)
     {
         transform_to_pixman_transform (&composite->src_transform, &transform);
@@ -3315,6 +3341,10 @@ static void canvas_draw_composite(SpiceCanvas *spice_canvas, SpiceRect *bbox,
         } else {
             m = canvas_get_image(canvas, composite->mask_bitmap, FALSE);
         }
+        if (m == NULL) {
+            spice_critical("no composite mask");
+            goto m_error;
+        }
 
         if (composite->flags & SPICE_COMPOSITE_HAS_MASK_TRANSFORM) {
             transform_to_pixman_transform (&composite->mask_transform, &transform);
@@ -3333,6 +3363,7 @@ static void canvas_draw_composite(SpiceCanvas *spice_canvas, SpiceRect *bbox,
                               composite->mask_origin.x, composite->mask_origin.y,
                               0, 0, width, height);
 
+m_error:
     pixman_image_unref(s);
     if (m)
         pixman_image_unref(m);
@@ -3341,8 +3372,9 @@ static void canvas_draw_composite(SpiceCanvas *spice_canvas, SpiceRect *bbox,
                                   bbox->left,
                                   bbox->top);
 
+s_error:
     pixman_image_unref(d);
-
+d_error:
     pixman_region32_fini(&dest_region);
 }
 
