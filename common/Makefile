@@ -84,9 +84,7 @@ MARSHALLER_GENERATED =				\
 	generated_client_marshallers.h          \
 	generated_server_marshallers.h          \
 	generated_client_demarshallers.c        \
-	generated_client_demarshallers1.c       \
 	generated_client_marshallers.c          \
-	generated_client_marshallers1.c         \
 	generated_server_demarshallers.c        \
 	generated_server_marshallers.c          \
 
@@ -100,16 +98,10 @@ generated_%.c generated_%.h: $(MARSHALLERS_DEPS) $(MAKEFILE_DEPS)
 GENERATE_CODEGEN=../spice_codegen.py $(GEN_$@) $< $@ >/dev/null
 GEN_generated_client_demarshallers.c=					\
 	--generate-demarshallers --client --include common/messages.h
-GEN_generated_client_demarshallers1.c=					\
-	--generate-demarshallers --client --include common/messages.h	\
-	--prefix 1 --ptrsize 8
 GEN_generated_client_marshallers.h=					\
 	--generate-marshallers -P --client --include common/messages.h -H
 GEN_generated_client_marshallers.c=					\
 	--generate-marshallers -P --include client_marshallers.h --client
-GEN_generated_client_marshallers1.c=					\
-	--generate-marshallers -P --include common/messages.h		\
-	--include client_marshallers.h --client --prefix 1 --ptrsize 8
 GEN_generated_server_demarshallers.c=					\
 	--generate-demarshallers --server --include common/messages.h
 STRUCTS = -M String -M Rect -M Point -M DisplayBase -M Fill -M Opaque -M Copy -M Blend -M Blackness -M Whiteness -M Invers -M Rop3 -M Stroke -M Text -M Transparent -M AlphaBlend -M Composite
